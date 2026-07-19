@@ -1,0 +1,1355 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My-B List - スマート持ち物チェック</title>
+    <!-- PWA用の設定図を読み込む -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="My-B List">
+    <style>
+        /* 高級感と立体感のあるカラー・陰影の定義 */
+        :root {
+            --bg-color: #f2f2f7;
+            --screen-bg: #f2f2f7; 
+            --text-color: #1c1c1e;
+            --text-secondary: #8e8e93;
+            --card-bg: #ffffff;
+            --card-border: rgba(0, 0, 0, 0.04);
+            --accent-color: #007aff;
+            --box-shadow-out: 4px 4px 10px rgba(0, 0, 0, 0.08), -4px -4px 10px rgba(255, 255, 255, 0.9);
+            --box-shadow-in: inset 2px 2px 5px rgba(0, 0, 0, 0.06), inset -2px -2px 5px rgba(255, 255, 255, 0.7);
+            --btn-gradient: linear-gradient(145deg, #ffffff, #e6e6e6);
+            --logo-gradient: linear-gradient(135deg, #007aff, #00c6ff);
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #000000;
+            --screen-bg: #1c1c1e;
+            --text-color: #ffffff;
+            --text-secondary: #aeaeae;
+            --card-bg: #2c2c2e;
+            --card-border: rgba(255, 255, 255, 0.04);
+            --accent-color: #0a84ff;
+            --box-shadow-out: 4px 4px 12px rgba(0, 0, 0, 0.4), -3px -3px 8px rgba(255, 255, 255, 0.05);
+            --box-shadow-in: inset 3px 3px 6px rgba(0, 0, 0, 0.4), inset -2px -2px 5px rgba(255, 255, 255, 0.05);
+            --btn-gradient: linear-gradient(145deg, #323236, #242427);
+            --logo-gradient: linear-gradient(135deg, #0a84ff, #64d2ff);
+        }
+
+        /* 全画面スクロールを可能にするための全体CSS修正 */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--screen-bg);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            height: auto;
+            display: flex;
+            justify-content: center;
+            -webkit-tap-highlight-color: transparent;
+            transition: background 0.4s;
+        }
+
+        /* スマホフレームと二重時間を廃止し、コンテンツ幅を最適化 */
+        .phone-container {
+            width: 100%;
+            max-width: 500px;
+            min-height: 100vh;
+            height: auto;
+            background-color: var(--screen-bg);
+            color: var(--text-color);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            transition: background 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), color 0.4s;
+        }
+
+        /* おしゃれな文字主役の立体テキストロゴ */
+        .app-header-logo {
+            display: flex;
+            align-items: center;
+            margin-bottom: 6px;
+            padding-left: 2px;
+            margin-top: 10px;
+        }
+        .logo-text {
+            font-family: "SF Pro Display", "Helvetica Neue", sans-serif;
+            font-size: 1.4rem;
+            font-weight: 900;
+            font-style: italic;
+            letter-spacing: -0.8px;
+            background: var(--logo-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 1px 1px 0px rgba(255, 255, 255, 0.2);
+        }
+        [data-theme="dark"] .logo-text {
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        /* お天気自動連携ウィジェット */
+        .weather-widget {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            padding: 12px 14px;
+            border-radius: 16px;
+            margin-bottom: 12px;
+            box-shadow: var(--box-shadow-out);
+        }
+        .weather-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .weather-icon-display {
+            font-size: 1.6rem;
+        }
+        .weather-status-text {
+            font-size: 0.85rem;
+            font-weight: 700;
+        }
+        .weather-toggle-btn {
+            background: var(--screen-bg);
+            border: 1px solid var(--card-border);
+            color: var(--text-color);
+            padding: 6px 10px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: var(--box-shadow-out);
+        }
+        .weather-toggle-btn:active {
+            box-shadow: var(--box-shadow-in);
+        }
+
+        .umbrella-alert {
+            border: 1.5px dashed #ff2d55 !important;
+            background: rgba(255, 45, 85, 0.05) !important;
+        }
+
+        /* 画面切り替えと縦スクロール対応 */
+        .screen {
+            display: none;
+            flex: 1;
+            padding: 16px 20px;
+            box-sizing: border-box;
+            padding-bottom: 110px; /* ナビバーと被らないよう広めに確保 */
+            opacity: 0;
+            transform: translateY(15px);
+            transition: opacity 0.35s cubic-bezier(0.25, 0.8, 0.25, 1), transform 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        .screen.active {
+            display: flex;
+            flex-direction: column;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        h2 {
+            font-size: 1.4rem;
+            font-weight: 800;
+            margin: 2px 0 2px 0;
+            letter-spacing: -0.5px;
+        }
+
+        .sub-title {
+            font-size: 0.82rem;
+            color: var(--accent-color);
+            margin-bottom: 16px;
+            font-weight: 600;
+        }
+
+        .section-title {
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            margin: 16px 0 8px 4px;
+            letter-spacing: 0.5px;
+        }
+
+        .calendar-box, .notice-add-box, .setting-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            padding: 14px 16px;
+            border-radius: 18px;
+            margin-bottom: 14px;
+            box-shadow: var(--box-shadow-out);
+        }
+
+        .calendar-box {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 10px;
+            box-shadow: var(--box-shadow-in);
+        }
+
+        .calendar-box input[type="date"], .notice-add-box input[type="time"] {
+            font-family: inherit;
+            font-size: 1.1rem;
+            font-weight: 700;
+            padding: 8px;
+            border: none;
+            background: transparent;
+            color: var(--text-color);
+            width: 90%;
+            text-align: center;
+            outline: none;
+        }
+
+        .favorite-container {
+            background: var(--card-bg);
+            border: 1px dashed var(--text-secondary);
+            border-radius: 18px;
+            padding: 12px;
+            margin-bottom: 14px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            max-height: 95px;
+            overflow-y: auto;
+            box-shadow: var(--box-shadow-in);
+        }
+
+        .fav-badge {
+            background: var(--card-bg);
+            color: var(--text-color);
+            border: 1px solid var(--card-border);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: var(--box-shadow-out);
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+        .fav-badge:active {
+            transform: scale(0.95);
+            box-shadow: var(--box-shadow-in);
+        }
+
+        .add-item-form {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+
+        .add-item-form input[type="text"] {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid var(--card-border);
+            background: var(--card-bg);
+            color: var(--text-color);
+            border-radius: 14px;
+            font-size: 0.9rem;
+            outline: none;
+            box-shadow: var(--box-shadow-in);
+        }
+
+        .setting-select {
+            width: 100%;
+            padding: 12px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            border-radius: 14px;
+            border: 1px solid var(--card-border);
+            background: var(--card-bg);
+            color: var(--text-color);
+            margin-bottom: 14px;
+            box-shadow: var(--box-shadow-out);
+            outline: none;
+        }
+
+        button {
+            transition: transform 0.1s cubic-bezier(0, 0, 0.2, 1), box-shadow 0.1s;
+        }
+        button:active {
+            transform: scale(0.96) !important;
+        }
+
+        .btn-small {
+            border: none;
+            padding: 0 14px;
+            border-radius: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 0.8rem;
+            color: white;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .location-btn-large {
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 22px;
+            padding: 18px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: white;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.12), inset 0 2px 4px rgba(255,255,255,0.2);
+        }
+        .location-btn-large:active {
+            box-shadow: inset 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .add-btn { background: linear-gradient(135deg, var(--accent-color), #00c6ff); }
+        .fav-add-btn { background: linear-gradient(135deg, #ff9500, #ffcc00); }
+
+        .checklist { display: flex; flex-direction: column; gap: 10px; }
+
+        .calendar-checklist-container {
+            flex: 1;
+            min-height: 140px;
+            margin-bottom: 12px;
+            border-radius: 18px;
+            background: var(--screen-bg);
+            padding: 10px;
+            box-shadow: var(--box-shadow-in);
+        }
+
+        .check-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 18px;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            box-shadow: var(--box-shadow-out);
+            animation: itemAppear 0.25s ease-out;
+        }
+
+        @keyframes itemAppear {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .day-selector { display: flex; gap: 4px; margin-top: 6px; }
+        .day-dot {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 5px 8px;
+            background: var(--card-bg);
+            color: var(--text-secondary);
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: var(--box-shadow-out);
+            transition: all 0.15s ease;
+            border: 1px solid var(--card-border);
+        }
+        .day-dot.active { 
+            background: var(--accent-color); 
+            color: #fff; 
+            box-shadow: var(--box-shadow-in), 0 0 8px rgba(0,122,255,0.3);
+            border-color: transparent;
+        }
+
+        .checkbox {
+            width: 26px;
+            height: 26px;
+            cursor: pointer;
+            appearance: none;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            position: relative;
+            box-shadow: var(--box-shadow-out);
+            transition: all 0.2s ease;
+        }
+        .checkbox:checked {
+            background: #34c759;
+            border-color: transparent;
+            box-shadow: var(--box-shadow-in), 0 0 10px rgba(52,199,89,0.3);
+            animation: popCheck 0.2s ease;
+        }
+        .checkbox:checked::after {
+            content: '✓';
+            position: absolute;
+            color: white;
+            font-size: 16px;
+            font-weight: 900;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        @keyframes popCheck {
+            0% { transform: scale(1); }
+            50% { transform: scale(0.9); }
+            100% { transform: scale(1); }
+        }
+
+        .delete-btn { background: none; border: none; color: #ff3b30; font-size: 1.3rem; cursor: pointer; padding: 4px; }
+        .delete-btn::before { content: '×'; }
+
+        .back-btn {
+            background: none;
+            border: none;
+            color: var(--accent-color);
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 0;
+            margin-bottom: 12px;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 28px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: var(--screen-bg);
+            box-shadow: var(--box-shadow-in);
+            transition: .25s ease;
+            border-radius: 28px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 22px; width: 22px;
+            left: 3px; bottom: 3px;
+            background-color: white;
+            box-shadow: 1px 2px 5px rgba(0,0,0,0.2);
+            transition: .25s ease;
+            border-radius: 50%;
+        }
+        [data-theme="dark"] .slider:before {
+            background-color: #ecedf2;
+        }
+        input:checked + .slider { background-color: #34c759; box-shadow: inset 1px 2px 5px rgba(0,0,0,0.1); }
+        input:checked + .slider:before { transform: translateX(22px); }
+
+        /* ナビゲーションバーを下部に固定 */
+        .navbar {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 500px;
+            height: 75px;
+            background: rgba(248, 249, 250, 0.88);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid var(--card-border);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding-bottom: 12px;
+            box-sizing: border-box;
+            z-index: 1000;
+        }
+        [data-theme="dark"] .navbar {
+            background: rgba(28, 28, 30, 0.88);
+        }
+
+        .nav-item {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            flex: 1;
+        }
+        .nav-item span { font-size: 20px; margin-bottom: 3px; transition: transform 0.2s; }
+        .nav-item.active { color: var(--accent-color); }
+        .nav-item.active span { transform: scale(1.12); }
+
+        .hint-text { font-size: 11px; color: var(--text-secondary); text-align: center; margin-top: 8px; }
+
+        .permission-btn {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 12px 14px;
+            border-radius: 14px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 14px;
+            box-shadow: 0 4px 10px rgba(0,122,255,0.2);
+        }
+
+        /* アラーム全画面 */
+        .alarm-overlay {
+            position: fixed;
+            top: 0; left: 50%; 
+            transform: translateX(-50%);
+            width: 100%; 
+            max-width: 500px;
+            height: 100%;
+            background: radial-gradient(circle, #ff453a 0%, #ff3b30 100%);
+            color: white;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            animation: alarmPulse 2s infinite alternate ease-in-out;
+        }
+        @keyframes alarmPulse {
+            0% { background-color: #ff3b30; }
+            100% { background-color: #d7231a; }
+        }
+
+        .alarm-icon-wrap {
+            font-size: 4rem;
+            animation: bellRinging 0.5s infinite alternate ease-in-out;
+        }
+        @keyframes bellRinging {
+            0% { transform: rotate(-10deg) scale(1); }
+            100% { transform: rotate(10deg) scale(1.1); }
+        }
+
+        .alarm-stop-btn {
+            background: white;
+            color: #ff3b30;
+            border: none;
+            padding: 16px 50px;
+            font-size: 1.2rem;
+            font-weight: 800;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            margin-top: 40px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="phone-container" id="phone">
+
+        <div id="alarm-screen" class="alarm-overlay">
+            <div class="alarm-icon-wrap">🔔</div>
+            <h3 style="margin: 20px 0 5px 0; font-size: 1.5rem; font-weight:800;">持ち物チェックの時間！</h3>
+            <p id="alarm-screen-time" style="font-size: 1.2rem; opacity: 0.9; margin: 0; font-weight:700;">00:00</p>
+            <button class="alarm-stop-btn" onclick="stopCurrentAlarm()">アラームを止める</button>
+        </div>
+
+        <div id="screen-home" class="screen active">
+            <div class="app-header-logo">
+                <span class="logo-text">My-B List</span>
+            </div>
+            
+            <div class="weather-widget">
+                <div class="weather-info">
+                    <span id="home-weather-icon" class="weather-icon-display">🔄</span>
+                    <div>
+                        <div id="home-weather-text" class="weather-status-text">天気データを取得中...</div>
+                        <div id="home-weather-tip" style="font-size: 0.72rem; color: var(--text-secondary); font-weight:600;">位置情報の取得を許可してください</div>
+                    </div>
+                </div>
+                <button class="weather-toggle-btn" onclick="fetchWeatherWithGPS()">更新</button>
+            </div>
+
+            <h2>今日の持ち物</h2>
+            <div id="home-date-label" class="sub-title"></div>
+            <div id="home-checklist" class="checklist"></div>
+            <p class="hint-text">チェックすることで何がまだ持っていないのかわかりやすい！</p>
+        </div>
+
+        <div id="screen-calendar" class="screen">
+            <div class="app-header-logo">
+                <span class="logo-text">My-B List</span>
+            </div>
+            <h2>持ち物設定</h2>
+            <div class="sub-title">日付や予定に合わせてカスタム</div>
+            
+            <div id="calendar-step-select" style="display: flex; flex-direction: column; flex: 1;">
+                <div class="calendar-box"><input type="date" id="selected-date" onchange="onDateChange()"></div>
+                <div class="section-title" style="margin-top: 20px; margin-bottom: 12px; text-align: center;"> 行く場所を選択して設定</div>
+                <!-- 追加された行く場所のボタンがここに動的に並びます -->
+                <div id="calendar-location-buttons-container" style="display: flex; flex-direction: column; gap: 4px;"></div>
+            </div>
+            
+            <div id="calendar-step-detail" style="display: none; flex-direction: column; flex: 1;">
+                <button class="back-btn" onclick="backToSelectScreen()"> 戻る</button>
+                <div id="detail-current-status-title" style="font-size: 0.95rem; font-weight: bold; color: var(--text-color); margin-bottom: 12px; background: var(--card-bg); padding: 10px 14px; border-radius: 12px; border: 1px solid var(--card-border); text-align: center; box-shadow: var(--box-shadow-out);">選択中の予定</div>
+                <div class="section-title"> お気に入り（タップで追加）</div>
+                <div id="favorite-list" class="favorite-container"></div>
+                <div class="add-item-form">
+                    <input type="text" id="new-item-name" placeholder="例：体育着、お弁当">
+                    <button class="btn-small add-btn" onclick="addNewItem()">追加</button>
+                    <button class="btn-small fav-add-btn" onclick="addToFavorite()">登録</button>
+                </div>
+                <div class="section-title"> この日の持ち物</div>
+                <div class="calendar-checklist-container">
+                    <div id="calendar-checklist" class="checklist"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="screen-notice" class="screen">
+            <div class="app-header-logo">
+                <span class="logo-text">My-B List</span>
+            </div>
+            <h2>通知設定</h2>
+            <div class="sub-title">時間と曜日でリマインド</div>
+            
+            <div class="setting-card" style="display: flex; justify-content: space-between; align-items: center; background: rgba(52, 199, 89, 0.08); border-color: rgba(52, 199, 89, 0.15);">
+                <span style="font-weight: bold;"> 全体の通知機能を有効化</span>
+                <label class="switch">
+                    <input type="checkbox" id="master-notice-switch" checked onchange="toggleMasterNotice(this.checked)">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <button id="auth-notice-btn" class="permission-btn" onclick="requestNotificationPermission()"> PC/スマホの画面に直接通知を出す</button>
+
+            <div class="notice-add-box">
+                <input type="time" id="new-notice-time" value="08:00">
+                <button class="btn-small add-btn" style="padding: 10px 18px; margin-left: 5px;" onclick="addNoticeTime()">追加</button>
+            </div>
+            <div id="notice-list" class="checklist"></div>
+        </div>
+
+        <div id="screen-settings" class="screen">
+            <div class="app-header-logo">
+                <span class="logo-text">My-B List</span>
+            </div>
+            <h2>設定</h2>
+            <div class="sub-title">アプリのカスタマイズ</div>
+            <div class="setting-card" style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-weight: bold;"> ダークモード</span>
+                <label class="switch">
+                    <input type="checkbox" id="dark-mode-switch" onchange="toggleDarkMode(this.checked)">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            
+            <div class="setting-card">
+                <span style="font-weight: bold; display: block; margin-bottom: 10px;"> 毎日の基本の持ち物</span>
+                <div class="add-item-form">
+                    <input type="text" id="new-master-item" placeholder="新しい基本の持ち物">
+                    <button class="btn-small add-btn" onclick="addMasterItem()">登録</button>
+                </div>
+                <div id="master-items-list" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 5px;"></div>
+            </div>
+
+            <!-- ユーザーが自由に行く場所を追加・設定できるエリア -->
+            <div class="setting-card">
+                <span style="font-weight: bold; display: block; margin-bottom: 6px;"> 行く場所を追加・削除</span>
+                <div class="add-item-form" style="margin-bottom: 16px;">
+                    <input type="text" id="custom-location-name" placeholder="新しい場所（例：塾、ジム、温泉）">
+                    <button class="btn-small add-btn" onclick="addNewLocationPreset()">場所を追加</button>
+                </div>
+
+                <span style="font-weight: bold; display: block; margin-bottom: 10px;"> 行く場所別の基本の持ち物</span>
+                <select id="preset-location-select" class="setting-select" onchange="renderLocationPresetItems()">
+                    <!-- JavaScriptで動的に生成 -->
+                </select>
+                <div class="add-item-form">
+                    <input type="text" id="new-location-preset-item" placeholder="選んだ場所の基本アイテム">
+                    <button class="btn-small add-btn" onclick="addLocationPresetItem()">登録</button>
+                </div>
+                <div id="location-preset-items-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
+            </div>
+        </div>
+
+        <div class="navbar">
+            <button class="nav-item" onclick="changeTab('screen-notice', this)"><span>🔔</span>通知</button>
+            <button class="nav-item active" onclick="changeTab('screen-home', this)"><span>🏠</span>ホーム</button>
+            <button class="nav-item" onclick="changeTab('screen-calendar', this)"><span>📅</span>持ち物設定</button>
+            <button class="nav-item" onclick="changeTab('screen-settings', this)"><span>⚙️</span>設定</button>
+        </div>
+
+    </div>
+
+    <script>
+        const todayStr = new Date().toISOString().split('T')[0];
+        const weekDays = ['日', '月', '火', '水', '木', '金', '土'];
+        
+        let currentCalendarItems = [];
+        let favoriteItems = [];
+        let noticeItems = [];
+        let defaultItems = [];
+        let locationPresets = {};
+        let locationLabels = {}; // 各場所の表示名を管理用
+        
+        let isNoticeMasterEnabled = true; 
+        let lastTriggeredMinute = "";
+        let alarmAudioInterval = null;
+        let editingNoticeIndex = null;
+
+        let weatherState = 0; 
+        let maxPrecipitationProbability = 0; 
+
+        window.onload = function() {
+            document.getElementById('home-date-label').innerText = `本日 (${todayStr})`;
+            document.getElementById('selected-date').value = todayStr;
+
+            const savedMaster = localStorage.getItem('master_items');
+            defaultItems = savedMaster ? JSON.parse(savedMaster) : [" 筆記用具", " パソコン", " 教科書"];
+
+            // 行く場所（プリセット）の復元とデフォルト設定
+            const savedPresets = localStorage.getItem('location_presets');
+            const savedLabels = localStorage.getItem('location_labels');
+            if (savedPresets && savedLabels) {
+                locationPresets = JSON.parse(savedPresets);
+                locationLabels = JSON.parse(savedLabels);
+            } else {
+                locationPresets = {
+                    school: [" 筆記用具", " 教科書", " お弁当", " 学生証"],
+                    outing: [" 財布", " スマホ", " ハンカチ", " 充電器"],
+                    parttime: [" メモ帳", " ボールペン", " 身分証明書", " 制服/エプロン"]
+                };
+                locationLabels = {
+                    school: "学校",
+                    outing: "お出かけ",
+                    parttime: "バイト"
+                };
+                saveLocationStructureImmediate();
+            }
+
+            const savedFavs = localStorage.getItem('favorite_items');
+            favoriteItems = savedFavs ? JSON.parse(savedFavs) : ["体育着", "お弁当", "習字道具"];
+            
+            const savedNotices = localStorage.getItem('notice_items');
+            noticeItems = savedNotices ? JSON.parse(savedNotices) : [
+                { time: "07:00", enabled: true, days: [false, true, true, true, true, true, false] },
+                { time: "22:00", enabled: true, days: [false, true, true, true, true, true, false] }
+            ];
+            const savedMasterNotice = localStorage.getItem('master_notice_enabled');
+            isNoticeMasterEnabled = savedMasterNotice !== 'false';
+            document.getElementById('master-notice-switch').checked = isNoticeMasterEnabled;
+
+            const isDark = localStorage.getItem('dark_mode') === 'true';
+            document.getElementById('dark-mode-switch').checked = isDark;
+            toggleDarkMode(isDark);
+            
+            fetchWeatherWithGPS();
+
+            loadHomeData();
+            loadCalendarDataForDate(todayStr);
+            renderFavorites();
+            renderNoticeList();
+            renderMasterItems();
+            
+            // 行く場所をセレクトボックスと設定選択画面にビルド
+            buildLocationSelectOptions();
+            renderLocationCalendarButtons();
+            renderLocationPresetItems();
+
+            if (Notification.permission === 'granted') {
+                document.getElementById('auth-notice-btn').style.display = 'none';
+            }
+
+            setInterval(checkNoticeTime, 1000);
+
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('./sw.js')
+                .then(reg => {
+                    console.log('Service Worker 登録成功！', reg);
+                    if ('periodicSync' in reg) {
+                        reg.periodicSync.register('check-notice', {
+                            minInterval: 60 * 1000 
+                        }).catch(e => console.log('PeriodicSync制限中', e));
+                    }
+                })
+                .catch(err => console.log('Service Worker 登録失敗', err));
+            }
+        };
+
+        // 行く場所を動的にセレクトボックスに生成
+        function buildLocationSelectOptions() {
+            const select = document.getElementById('preset-location-select');
+            const currentValue = select.value;
+            select.innerHTML = '';
+            Object.keys(locationPresets).forEach(key => {
+                const opt = document.createElement('option');
+                opt.value = key;
+                opt.innerText = ` ${locationLabels[key]} の基本`;
+                select.appendChild(opt);
+            });
+            if (locationPresets[currentValue]) {
+                select.value = currentValue;
+            }
+        }
+
+        // 行く場所（カレンダー画面の設定用大きなボタン）を動的に生成
+        function renderLocationCalendarButtons() {
+            const container = document.getElementById('calendar-location-buttons-container');
+            container.innerHTML = '';
+
+            // 各場所に応じたボタンカラーグラデーションを用意
+            const colors = [
+                "linear-gradient(135deg, #34c759, #28a745)",
+                "linear-gradient(135deg, #ff2d55, #d91b43)",
+                "linear-gradient(135deg, #af52de, #913ec4)",
+                "linear-gradient(135deg, #007aff, #0056b3)",
+                "linear-gradient(135deg, #ff9500, #cc7a00)"
+            ];
+
+            Object.keys(locationPresets).forEach((key, index) => {
+                const btnColor = colors[index % colors.length];
+                container.innerHTML += `
+                    <div style="position: relative; margin-bottom: 14px;">
+                        <button class="location-btn-large" style="background: ${btnColor}; margin-bottom: 0;" onclick="openLocationDetail('${key}')"> 
+                            ${locationLabels[key]} を設定
+                        </button>
+                        <button class="delete-btn" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: white; font-size: 1.5rem; z-index: 10;" onclick="event.stopPropagation(); deleteLocationPresetStructure('${key}')"></button>
+                    </div>`;
+            });
+        }
+
+        // 新しい行く場所を追加する機能
+        function addNewLocationPreset() {
+            const input = document.getElementById('custom-location-name');
+            const name = input.value.trim();
+            if (!name) return;
+
+            // 被り防止のために適当なキーを生成
+            const key = 'loc_' + Date.now();
+            
+            locationPresets[key] = [];
+            locationLabels[key] = name;
+            
+            saveLocationStructureImmediate();
+            buildLocationSelectOptions();
+            renderLocationCalendarButtons();
+            
+            document.getElementById('preset-location-select').value = key;
+            renderLocationPresetItems();
+            
+            input.value = '';
+        }
+
+        // 行く場所の枠自体を削除する機能
+        function deleteLocationPresetStructure(key) {
+            if (confirm(`「${locationLabels[key]}」の枠と設定をすべて削除しますか？`)) {
+                delete locationPresets[key];
+                delete locationLabels[key];
+                saveLocationStructureImmediate();
+                buildLocationSelectOptions();
+                renderLocationCalendarButtons();
+                renderLocationPresetItems();
+            }
+        }
+
+        function saveLocationStructureImmediate() {
+            localStorage.setItem('location_presets', JSON.stringify(locationPresets));
+            localStorage.setItem('location_labels', JSON.stringify(locationLabels));
+        }
+
+        function fetchWeatherWithGPS() {
+            const iconEl = document.getElementById('home-weather-icon');
+            const textEl = document.getElementById('home-weather-text');
+            const tipEl = document.getElementById('home-weather-tip');
+
+            iconEl.innerText = '🔄';
+            textEl.innerText = '位置情報を取得中...';
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude;
+                        const lon = position.coords.longitude;
+                        getWeatherFromAPI(lat, lon);
+                    },
+                    (error) => {
+                        console.warn("位置情報取得失敗。デフォルト値(東京)で取得します。", error);
+                        getWeatherFromAPI(35.6895, 139.6917);
+                    },
+                    { timeout: 6000 }
+                );
+            } else {
+                getWeatherFromAPI(35.6895, 139.6917);
+            }
+        }
+
+        async function getWeatherFromAPI(lat, lon) {
+            const iconEl = document.getElementById('home-weather-icon');
+            const textEl = document.getElementById('home-weather-text');
+            const tipEl = document.getElementById('home-weather-tip');
+
+            try {
+                const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weathercode,precipitation_probability_max&timezone=Asia%2FTokyo`;
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data && data.daily) {
+                    const code = data.daily.weathercode[0]; 
+                    maxPrecipitationProbability = data.daily.precipitation_probability_max[0] || 0; 
+
+                    if ((code >= 51 && code <= 67) || (code >= 80 && code <= 86) || maxPrecipitationProbability >= 50) {
+                        weatherState = 2;
+                        iconEl.innerText = '☔';
+                        textEl.innerText = `今日の予報: 雨・雪 (降水確率 ${maxPrecipitationProbability}%)`;
+                        tipEl.innerText = '【自動提案】傘をリストに追加しました！';
+                        tipEl.style.color = '#ff2d55';
+                    } else if (code >= 1 && code <= 3) {
+                        weatherState = 1;
+                        iconEl.innerText = '☁️';
+                        textEl.innerText = `今日の予報: 曇り (降水確率 ${maxPrecipitationProbability}%)`;
+                        tipEl.innerText = '念のため折りたたみ傘があると安心です';
+                        tipEl.style.color = 'var(--text-secondary)';
+                    } else {
+                        weatherState = 0;
+                        iconEl.innerText = '☀️';
+                        textEl.innerText = `今日の予報: 晴れ (降水確率 ${maxPrecipitationProbability}%)`;
+                        tipEl.innerText = '今日は傘の必要はなさそうです';
+                        tipEl.style.color = 'var(--text-secondary)';
+                    }
+                } else {
+                    throw new Error("データの解析に失敗しました");
+                }
+            } catch (err) {
+                console.error("天気情報の取得に失敗:", err);
+                iconEl.innerText = '⚠️';
+                textEl.innerText = '天気情報の取得に失敗';
+                tipEl.innerText = 'ネットワーク接続を確認してください';
+                weatherState = 0;
+            }
+
+            loadHomeData();
+        }
+
+        function toggleMasterNotice(enabled) {
+            isNoticeMasterEnabled = enabled;
+            localStorage.setItem('master_notice_enabled', enabled);
+        }
+
+        function requestNotificationPermission() {
+            Notification.requestPermission().then(permission => {
+                if (permission === 'granted') {
+                    alert('端末通知が有効になりました！');
+                    document.getElementById('auth-notice-btn').style.display = 'none';
+                    
+                    navigator.serviceWorker.ready.then(reg => {
+                        reg.showNotification("My-B List", { body: "アプリを閉じても、時間になったら画面に通知されます！" });
+                    });
+                }
+            });
+        }
+
+        function playBeepSound() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(880, ctx.currentTime);
+                gain.gain.setValueAtTime(0.15, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.2);
+            } catch(e) { console.log(e); }
+        }
+
+        function checkNoticeTime() {
+            if (!isNoticeMasterEnabled) return;
+            const now = new Date();
+            const currentHHMM = String(now.getHours()).padStart(2, '0') + ":" + String(now.getMinutes()).padStart(2, '0');
+            const currentDay = now.getDay();
+            if (lastTriggeredMinute === currentHHMM) return;
+
+            noticeItems.forEach(notice => {
+                if (notice.enabled && notice.days[currentDay] && notice.time === currentHHMM) {
+                    lastTriggeredMinute = currentHHMM;
+                    
+                    if (Notification.permission === 'granted') {
+                        navigator.serviceWorker.ready.then(reg => {
+                            reg.showNotification("持ち物チェックの時間です！", {
+                                body: `今日の持ち物リストを確認しましょう。`,
+                                vibrate: [200, 100, 200]
+                            });
+                        });
+                    }
+                    document.getElementById('alarm-screen-time').innerText = notice.time;
+                    document.getElementById('alarm-screen').style.display = 'flex';
+                    if (alarmAudioInterval) clearInterval(alarmAudioInterval);
+                    playBeepSound();
+                    alarmAudioInterval = setInterval(playBeepSound, 600);
+                }
+            });
+        }
+
+        function stopCurrentAlarm() {
+            if (alarmAudioInterval) { clearInterval(alarmAudioInterval); alarmAudioInterval = null; }
+            document.getElementById('alarm-screen').style.display = 'none';
+        }
+
+        function changeTab(screenId, element) {
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.style.display = 'none';
+                screen.classList.remove('active');
+            });
+            const targetScreen = document.getElementById(screenId);
+            if (targetScreen) {
+                targetScreen.style.display = 'flex';
+                setTimeout(() => { targetScreen.classList.add('active'); }, 20);
+            }
+
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            element.classList.add('active');
+
+            if (screenId === 'screen-home') loadHomeData();
+            if (screenId === 'screen-calendar') {
+                backToSelectScreen();
+                onDateChange();
+                renderLocationCalendarButtons();
+            }
+            if (screenId === 'screen-notice') {
+                editingNoticeIndex = null;
+                renderNoticeList();
+            }
+            if (screenId === 'screen-settings') {
+                renderMasterItems();
+                buildLocationSelectOptions();
+                renderLocationPresetItems();
+            }
+        }
+
+        function getItemsForDate(dateStr) {
+            const saved = localStorage.getItem('items_' + dateStr);
+            return saved ? JSON.parse(saved) : defaultItems.map(name => ({ name: name, checked: false }));
+        }
+
+        function loadHomeData() {
+            let items = getItemsForDate(todayStr);
+            const container = document.getElementById('home-checklist');
+            container.innerHTML = '';
+            
+            if (weatherState === 2) {
+                const savedUmbrellaCheck = localStorage.getItem('temp_umbrella_checked') === 'true';
+                container.innerHTML += `
+                    <div class="check-item umbrella-alert">
+                        <span style="font-weight: 700; color: #ff2d55;">折りたたみ傘 ☂️</span>
+                        <input type="checkbox" id="home-umbrella-chk" class="checkbox" ${savedUmbrellaCheck ? 'checked' : ''} onchange="localStorage.setItem('temp_umbrella_checked', this.checked)">
+                    </div>`;
+            }
+
+            items.forEach((item, index) => {
+                container.innerHTML += `
+                    <div class="check-item">
+                        <span>${item.name}</span>
+                        <input type="checkbox" id="home-chk-${index}" class="checkbox" ${item.checked ? 'checked' : ''} onchange="saveHomeDataImmediate()">
+                    </div>`;
+            });
+        }
+
+        function saveHomeDataImmediate() {
+            const items = getItemsForDate(todayStr);
+            items.forEach((item, index) => { 
+                const el = document.getElementById(`home-chk-${index}`);
+                if(el) item.checked = el.checked; 
+            });
+            localStorage.setItem('items_' + todayStr, JSON.stringify(items));
+        }
+
+        function onDateChange() {
+            const dateStr = document.getElementById('selected-date').value;
+            if (dateStr) loadCalendarDataForDate(dateStr);
+        }
+
+        function loadCalendarDataForDate(dateStr) {
+            currentCalendarItems = getItemsForDate(dateStr);
+            renderCalendarList();
+        }
+
+        function renderCalendarList() {
+            const container = document.getElementById('calendar-checklist');
+            container.innerHTML = '';
+            currentCalendarItems.forEach((item, index) => {
+                container.innerHTML += `
+                    <div class="check-item">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <input type="checkbox" id="cal-chk-${index}" class="checkbox" ${item.checked ? 'checked' : ''} onchange="currentCalendarItems[${index}].checked = this.checked; saveCalendarDataImmediate();">
+                            <span>${item.name}</span>
+                        </div>
+                        <button class="delete-btn" onclick="deleteItem(${index})"></button>
+                    </div>`;
+            });
+        }
+
+        function openLocationDetail(type) {
+            const dateStr = document.getElementById('selected-date').value;
+            document.getElementById('detail-current-status-title').innerText = ` ${dateStr}  ${locationLabels[type] || ''}`;
+            document.getElementById('calendar-step-select').style.display = 'none';
+            document.getElementById('calendar-step-detail').style.display = 'flex';
+            addLocationPreset(type);
+        }
+
+        function backToSelectScreen() {
+            document.getElementById('calendar-step-select').style.display = 'flex';
+            document.getElementById('calendar-step-detail').style.display = 'none';
+        }
+
+        function addLocationPreset(type) {
+            const currentPreset = locationPresets[type] || [];
+            currentPreset.forEach(name => {
+                if (!currentCalendarItems.some(item => item.name === name)) {
+                    currentCalendarItems.push({ name: name, checked: false });
+                }
+            });
+            renderCalendarList();
+            saveCalendarDataImmediate();
+        }
+
+        function addItemToCurrentList(name) {
+            if (currentCalendarItems.some(item => item.name === name)) return;
+            currentCalendarItems.push({ name: name, checked: false });
+            renderCalendarList();
+            saveCalendarDataImmediate();
+        }
+
+        function addNewItem() {
+            const input = document.getElementById('new-item-name');
+            if (input.value.trim()) addItemToCurrentList(input.value.trim());
+            input.value = '';
+        }
+
+        function deleteItem(index) { 
+            currentCalendarItems.splice(index, 1); 
+            renderCalendarList(); 
+            saveCalendarDataImmediate();
+        }
+        
+        function saveCalendarDataImmediate() {
+            const dateStr = document.getElementById('selected-date').value;
+            localStorage.setItem('items_' + dateStr, JSON.stringify(currentCalendarItems));
+        }
+
+        function renderFavorites() {
+            const container = document.getElementById('favorite-list');
+            container.innerHTML = favoriteItems.length ? '' : '<div class="empty-text">お気に入りがありません</div>';
+            favoriteItems.forEach((name, index) => {
+                container.innerHTML += `<div class="fav-badge" onclick="addItemToCurrentList('${name}')"><span>${name}</span><span style="color:#ff3b30; margin-left:5px;" onclick="deleteFavorite(event, ${index})">×</span></div>`;
+            });
+        }
+
+        function addToFavorite() {
+            const input = document.getElementById('new-item-name');
+            const name = input.value.trim();
+            if (name && !favoriteItems.includes(name)) {
+                favoriteItems.push(name);
+                localStorage.setItem('favorite_items', JSON.stringify(favoriteItems));
+                renderFavorites();
+            }
+            input.value = '';
+        }
+
+        function deleteFavorite(event, index) {
+            event.stopPropagation();
+            favoriteItems.splice(index, 1);
+            localStorage.setItem('favorite_items', JSON.stringify(favoriteItems));
+            renderFavorites();
+        }
+
+        function renderNoticeList() {
+            const container = document.getElementById('notice-list');
+            container.innerHTML = '';
+            noticeItems.forEach((notice, nIndex) => {
+                let daysHtml = '';
+                weekDays.forEach((day, dIndex) => {
+                    daysHtml += `<span class="day-dot ${notice.days[dIndex] ? 'active' : ''}" onclick="toggleNoticeDay(${nIndex}, ${dIndex})">${day}</span>`;
+                });
+          
+                if (editingNoticeIndex === nIndex) {
+                    container.innerHTML += `
+                        <div class="check-item" style="border-color: var(--accent-color); flex-direction: column; align-items: flex-start; gap: 8px; box-shadow: var(--box-shadow-in);">
+                            <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                                <input type="time" id="edit-notice-time-${nIndex}" value="${notice.time}" style="font-size: 1.1rem; padding: 4px 8px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--screen-bg); color: var(--text-color); font-family: inherit; font-weight: 700; box-shadow: var(--box-shadow-in);">
+                                <div style="display: flex; gap: 6px;">
+                                    <button class="btn-small add-btn" style="padding: 6px 12px;" onclick="updateNoticeTime(${nIndex})">決定</button>
+                                    <button class="btn-small" style="background: #ff3b30; padding: 6px 12px;" onclick="deleteNoticeTime(${nIndex})">消去</button>
+                                    <button class="btn-small" style="background: var(--text-secondary); padding: 6px 12px;" onclick="cancelNoticeEdit()">戻る</button>
+                                </div>
+                            </div>
+                            <div class="day-selector">${daysHtml}</div>
+                        </div>`;
+                } else {
+                    container.innerHTML += `
+                        <div class="check-item" style="cursor: pointer;" onclick="startNoticeEdit(${nIndex})">
+                            <div>
+                                <span style="font-size:1.2rem; font-weight:700; border-bottom: 2px dashed var(--accent-color); padding-bottom: 2px; font-family: 'SF Pro Display', sans-serif;">${notice.time}</span>
+                                <div class="day-selector" onclick="event.stopPropagation();">${daysHtml}</div>
+                            </div>
+                            <div style="display:flex; align-items:center; gap:10px;" onclick="event.stopPropagation();">
+                                <input type="checkbox" class="checkbox" ${notice.enabled ? 'checked' : ''} onchange="noticeItems[${nIndex}].enabled = this.checked; saveNoticeDataImmediate();">
+                            </div>
+                        </div>`;
+                }
+            });
+        }
+
+        function startNoticeEdit(index) {
+            editingNoticeIndex = index;
+            renderNoticeList();
+        }
+
+        function cancelNoticeEdit() {
+            editingNoticeIndex = null;
+            renderNoticeList();
+        }
+
+        document.addEventListener('click', function(e) {
+            if (editingNoticeIndex !== null) {
+                const activeEditContainer = document.querySelector('.check-item[style*="box-shadow: var(--box-shadow-in)"]');
+                const clickedInsideTime = e.target.closest('span[style*="border-bottom"]');
+                if (activeEditContainer && !activeEditContainer.contains(e.target) && !clickedInsideTime) {
+                    cancelNoticeEdit();
+                }
+            }
+        });
+
+        function updateNoticeTime(index) {
+            const newTime = document.getElementById(`edit-notice-time-${index}`).value;
+            if (newTime) {
+                noticeItems[index].time = newTime;
+                noticeItems.sort((a, b) => a.time.localeCompare(b.time));
+                editingNoticeIndex = null;
+                renderNoticeList();
+                saveNoticeDataImmediate();
+            }
+        }
+
+        function addNoticeTime() {
+            const time = document.getElementById('new-notice-time').value;
+            if (time && !noticeItems.some(n => n.time === time)) {
+                noticeItems.push({ time: time, enabled: true, days: [true, true, true, true, true, true, true] });
+                noticeItems.sort((a, b) => a.time.localeCompare(b.time));
+                renderNoticeList();
+                saveNoticeDataImmediate();
+            }
+        }
+
+        function deleteNoticeTime(index) { 
+            noticeItems.splice(index, 1); 
+            editingNoticeIndex = null;
+            renderNoticeList(); 
+            saveNoticeDataImmediate();
+        }
+
+        function toggleNoticeDay(nIdx, dIdx) { 
+            noticeItems[nIdx].days[dIdx] = !noticeItems[nIdx].days[dIdx]; 
+            renderNoticeList(); 
+            saveNoticeDataImmediate();
+        }
+
+        function saveNoticeDataImmediate() { 
+            localStorage.setItem('notice_items', JSON.stringify(noticeItems)); 
+        }
+
+        function toggleDarkMode(isDark) {
+            const phone = document.getElementById('phone');
+            if (isDark) phone.setAttribute('data-theme', 'dark');
+            else phone.removeAttribute('data-theme');
+            localStorage.setItem('dark_mode', isDark);
+        }
+
+        function renderMasterItems() {
+            const container = document.getElementById('master-items-list');
+            container.innerHTML = '';
+            defaultItems.forEach((name, index) => {
+                container.innerHTML += `
+                    <div style="display:flex; justify-content:space-between; align-items:center; background:var(--card-bg); padding:10px 14px; border-radius:12px; border:1px solid var(--card-border); box-shadow: var(--box-shadow-out);">
+                        <span>${name}</span>
+                        <button class="delete-btn" style="font-size:0.9rem;" onclick="deleteMasterItem(${index})"></button>
+                    </div>`;
+            });
+        }
+
+        function addMasterItem() {
+            const input = document.getElementById('new-master-item');
+            const name = input.value.trim();
+            if (name && !defaultItems.includes(name)) {
+                defaultItems.push(name);
+                localStorage.setItem('master_items', JSON.stringify(defaultItems));
+                
+                let todayItems = getItemsForDate(todayStr);
+                if (!todayItems.some(item => item.name === name)) {
+                    todayItems.push({ name: name, checked: false });
+                    localStorage.setItem('items_' + todayStr, JSON.stringify(todayItems));
+                }
+
+                renderMasterItems();
+            }
+            input.value = '';
+        }
+
+        function deleteMasterItem(index) {
+            const removedName = defaultItems[index];
+            defaultItems.splice(index, 1);
+            localStorage.setItem('master_items', JSON.stringify(defaultItems));
+            
+            let todayItems = getItemsForDate(todayStr);
+            todayItems = todayItems.filter(item => item.name !== removedName);
+            localStorage.setItem('items_' + todayStr, JSON.stringify(todayItems));
+
+            renderMasterItems();
+        }
+
+        function renderLocationPresetItems() {
+            const type = document.getElementById('preset-location-select').value;
+            const container = document.getElementById('location-preset-items-list');
+            container.innerHTML = '';
+            if (!type || !locationPresets[type]) return;
+            
+            const items = locationPresets[type] || [];
+            items.forEach((name, index) => {
+                container.innerHTML += `
+                    <div style="display:flex; justify-content:space-between; align-items:center; background:var(--card-bg); padding:10px 14px; border-radius:12px; border:1px solid var(--card-border); box-shadow: var(--box-shadow-out);">
+                        <span>${name}</span>
+                        <button class="delete-btn" style="font-size:0.9rem;" onclick="deleteLocationPresetItem(${index})"></button>
+                    </div>`;
+            });
+        }
+
+        function addLocationPresetItem() {
+            const type = document.getElementById('preset-location-select').value;
+            const input = document.getElementById('new-location-preset-item');
+            const name = input.value.trim();
+            if (name && type && !locationPresets[type].includes(name)) {
+                locationPresets[type].push(name);
+                saveLocationStructureImmediate();
+                renderLocationPresetItems();
+            }
+            input.value = '';
+        }
+
+        function deleteLocationPresetItem(index) {
+            const type = document.getElementById('preset-location-select').value;
+            if (!type) return;
+            locationPresets[type].splice(index, 1);
+            saveLocationStructureImmediate();
+            renderLocationPresetItems();
+        }
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "name": "My-B List",
+  "short_name": "My-B List",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f2f2f7",
+  "theme_color": "#007aff",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3284/3284649.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
