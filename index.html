@@ -872,7 +872,7 @@
             const tipEl = document.getElementById('home-weather-tip');
 
             iconEl.innerText = '🔄';
-            textEl.innerText = '位置情報を取得中...';
+            textEl.innerText = '最新の位置情報を取得中...';
 
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
@@ -883,46 +883,58 @@
                     },
                     (error) => {
                         console.warn("位置情報取得失敗。デフォルト値(東京)で取得します。", error);
+                        // 失敗時は分かりやすいようメッセージを変更
+                        tipEl.innerText = '※位置情報がオフのため東京の天気を表示中';
                         getWeatherFromAPI(35.6895, 139.6917);
                     },
-                    { timeout: 6000 }
+                    { 
+                        enableHighAccuracy: true, // 常にGPSを本気で動かす
+                        timeout: 8000,            // 8秒まで粘る
+                        maximumAge: 0             // 過去の古い位置情報の使い回しを【絶対禁止】
+                    }
                 );
             } else {
                 getWeatherFromAPI(35.6895, 139.6917);
             }
         }
-
+        
         async function getWeatherFromAPI(lat, lon) {
             const iconEl = document.getElementById('home-weather-icon');
             const textEl = document.getElementById('home-weather-text');
             const tipEl = document.getElementById('home-weather-tip');
 
             try {
-                const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weathercode,precipitation_probability_max&timezone=Asia%2FTokyo`;
+                // current（現在の天気）を追加し、モデルをjma_seamlessに指定
+                const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=weather_code&daily=weathercode,precipitation_probability_max&timezone=Asia%2FTokyo&models=jma_seamless`;
                 const response = await fetch(url);
                 const data = await response.json();
 
-                if (data && data.daily) {
-                    const code = data.daily.weathercode[0]; 
-                    maxPrecipitationProbability = data.daily.precipitation_probability_max[0] || 0; 
+                if (data) {
+                    // 1. まず「今現在」の気象コードを最優先でチェック
+                    const currentData = data.current_jma_seamless || data.current;
+                    const dailyData = data.daily_jma_seamless || data.daily;
+                    
+                    const currentCode = currentData ? currentData.weather_code : dailyData.weathercode[0];
+                    maxPrecipitationProbability = dailyData.precipitation_probability_max[0] || 0; 
 
-                    if ((code >= 51 && code <= 67) || (code >= 80 && code <= 86) || maxPrecipitationProbability >= 50) {
-                        weatherState = 2;
+                    // 2. 「今」のコードでスッキリ判定
+                    if ((currentCode >= 51 && currentCode <= 67) || (currentCode >= 80 && currentCode <= 86) || maxPrecipitationProbability >= 50) {
+                        weatherState = 2; // 雨
                         iconEl.innerText = '☔';
-                        textEl.innerText = `今日の予報: 雨・雪 (降水確率 ${maxPrecipitationProbability}%)`;
+                        textEl.innerText = `現在の天気: 雨・雪 (降水確率 ${maxPrecipitationProbability}%)`;
                         tipEl.innerText = '【自動提案】傘をリストに追加しました！';
                         tipEl.style.color = '#ff2d55';
-                    } else if (code >= 1 && code <= 3) {
-                        weatherState = 1;
+                    } else if (currentCode === 1 || currentCode === 2 || currentCode === 3) {
+                        weatherState = 1; // 曇り
                         iconEl.innerText = '☁️';
-                        textEl.innerText = `今日の予報: 曇り (降水確率 ${maxPrecipitationProbability}%)`;
+                        textEl.innerText = `現在の天気: 曇り (降水確率 ${maxPrecipitationProbability}%)`;
                         tipEl.innerText = '念のため折りたたみ傘があると安心です';
                         tipEl.style.color = 'var(--text-secondary)';
                     } else {
-                        weatherState = 0;
+                        weatherState = 0; // 晴れ (コード0など)
                         iconEl.innerText = '☀️';
-                        textEl.innerText = `今日の予報: 晴れ (降水確率 ${maxPrecipitationProbability}%)`;
-                        tipEl.innerText = '今日は傘の必要はなさそうです';
+                        textEl.innerText = `現在の天気: 晴れ (降水確率 ${maxPrecipitationProbability}%)`;
+                        tipEl.innerText = '今日もしっかり晴れて気持ちいいですね！';
                         tipEl.style.color = 'var(--text-secondary)';
                     }
                 } else {
