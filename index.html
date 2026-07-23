@@ -114,10 +114,6 @@
         .weather-icon-display {
             font-size: 1.6rem;
         }
-        .weather-status-text {
-            font-size: 0.85rem;
-            font-weight: 700;
-        }
         .weather-toggle-btn {
             background: var(--screen-bg);
             border: 1px solid var(--card-border);
@@ -157,11 +153,25 @@
             transform: translateY(0);
         }
 
+        .title-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin: 2px 0 2px 0;
+        }
+
         h2 {
             font-size: 1.4rem;
             font-weight: 800;
-            margin: 2px 0 2px 0;
+            margin: 0;
             letter-spacing: -0.5px;
+        }
+
+        .counter-badge {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: var(--accent-color);
+            font-family: 'SF Pro Display', sans-serif;
         }
 
         .sub-title {
@@ -180,7 +190,7 @@
             letter-spacing: 0.5px;
         }
 
-        .calendar-box, .notice-add-box, .setting-card {
+        .notice-add-box, .setting-card {
             background: var(--card-bg);
             border: 1px solid var(--card-border);
             padding: 14px 16px;
@@ -189,25 +199,43 @@
             box-shadow: var(--box-shadow-out);
         }
 
-        .calendar-box {
-            display: flex;
-            justify-content: center;
-            align-items: center;
+        /* カイゼン：カレンダー（日付選択）ボタンを大きく押しやすく立体的に変更 */
+        .calendar-box-clickable {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            padding: 18px 20px;
+            border-radius: 20px;
             margin-top: 10px;
-            box-shadow: var(--box-shadow-in);
+            margin-bottom: 18px;
+            box-shadow: var(--box-shadow-out);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            cursor: pointer;
+            position: relative;
+            transition: background 0.2s, transform 0.1s;
         }
-
-        .calendar-box input[type="date"], .notice-add-box input[type="time"] {
+        .calendar-box-clickable:active {
+            box-shadow: var(--box-shadow-in);
+            transform: scale(0.98);
+        }
+        .calendar-box-clickable span.cal-icon {
+            font-size: 1.5rem;
+        }
+        .calendar-box-clickable input[type="date"] {
             font-family: inherit;
-            font-size: 1.1rem;
-            font-weight: 700;
-            padding: 8px;
+            font-size: 1.2rem;
+            font-weight: 800;
             border: none;
             background: transparent;
             color: var(--text-color);
-            width: 90%;
-            text-align: center;
+            cursor: pointer;
             outline: none;
+            width: 100%;
+            max-width: 180px;
+            text-align: center;
+            -webkit-appearance: none; /* iOS標準のスタイルをリセット */
         }
 
         .favorite-container {
@@ -295,23 +323,24 @@
         }
 
         .location-btn-large {
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 22px;
-            padding: 18px;
-            font-size: 1.05rem;
-            font-weight: 700;
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 24px;
+            padding: 22px 20px;
+            font-size: 1.1rem;
+            font-weight: 800;
             color: white;
             cursor: pointer;
             width: 100%;
-            margin-bottom: 14px;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 12px;
-            box-shadow: 0 6px 15px rgba(0,0,0,0.12), inset 0 2px 4px rgba(255,255,255,0.2);
+            letter-spacing: 0.5px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15), inset 0 2px 4px rgba(255,255,255,0.25);
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
         }
         .location-btn-large:active {
-            box-shadow: inset 0 4px 8px rgba(0,0,0,0.2);
+            box-shadow: inset 0 4px 10px rgba(0,0,0,0.3);
         }
 
         .add-btn { background: linear-gradient(135deg, var(--accent-color), #00c6ff); }
@@ -402,18 +431,52 @@
         .delete-btn { background: none; border: none; color: #ff3b30; font-size: 1.3rem; cursor: pointer; padding: 4px; }
         .delete-btn::before { content: '×'; }
 
-        .back-btn {
-            background: none;
-            border: none;
-            color: var(--accent-color);
-            font-size: 1rem;
+        /* 戻るボタンとリセットボタン用のヘッダー */
+        .detail-navigation-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+            gap: 12px;
+        }
+
+        .back-btn-large {
+            flex: 1;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            color: var(--text-color);
+            padding: 14px;
+            border-radius: 14px;
+            font-size: 0.95rem;
             font-weight: 700;
             cursor: pointer;
             display: flex;
             align-items: center;
-            gap: 4px;
-            padding: 4px 0;
-            margin-bottom: 12px;
+            justify-content: center;
+            gap: 6px;
+            box-shadow: var(--box-shadow-out);
+        }
+        .back-btn-large:active {
+            box-shadow: var(--box-shadow-in);
+        }
+
+        .reset-btn-large {
+            background: rgba(255, 59, 48, 0.1);
+            border: 1px solid rgba(255, 59, 48, 0.2);
+            color: #ff3b30;
+            padding: 14px 20px;
+            border-radius: 14px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            box-shadow: var(--box-shadow-out);
+        }
+        .reset-btn-large:active {
+            box-shadow: inset 2px 2px 5px rgba(255, 59, 48, 0.2);
         }
 
         .switch {
@@ -577,7 +640,10 @@
                 <button class="weather-toggle-btn" onclick="fetchWeatherWithGPS()">更新</button>
             </div>
 
-            <h2>今日の持ち物</h2>
+            <div class="title-row">
+                <h2>今日の持ち物</h2>
+                <div id="home-counter" class="counter-badge">0 / 0</div>
+            </div>
             <div id="home-date-label" class="sub-title"></div>
             <div id="home-checklist" class="checklist"></div>
             <p class="hint-text">チェックすることで何がまだ持っていないのかわかりやすい！</p>
@@ -591,14 +657,24 @@
             <div class="sub-title">日付や予定に合わせてカスタム</div>
             
             <div id="calendar-step-select" style="display: flex; flex-direction: column; flex: 1;">
-                <div class="calendar-box"><input type="date" id="selected-date" onchange="onDateChange()"></div>
-                <div class="section-title" style="margin-top: 20px; margin-bottom: 12px; text-align: center;"> 行く場所を選択して設定</div>
-                <!-- 追加された行く場所のボタンがここに動的に並びます -->
+                
+                <!-- カイゼン：日付を選択のテキストを追加し、さらに押しやすく立体的に変更 -->
+            <div class="calendar-box-clickable" onclick="document.getElementById('selected-date').showPicker()">
+                <span class="cal-icon">📅</span>
+                <span style="font-weight: 800; font-size: 1.05rem; white-space: nowrap;">日付を選択：</span>
+                <input type="date" id="selected-date" onchange="onDateChange()" onclick="event.stopPropagation()">
+            </div>
+                
+                <div class="section-title" style="margin-top: 10px; margin-bottom: 12px; text-align: center;"> 行く場所を選択して設定</div>
                 <div id="calendar-location-buttons-container" style="display: flex; flex-direction: column; gap: 4px;"></div>
             </div>
             
             <div id="calendar-step-detail" style="display: none; flex-direction: column; flex: 1;">
-                <button class="back-btn" onclick="backToSelectScreen()"> 戻る</button>
+                <div class="detail-navigation-bar">
+                    <button class="back-btn-large" onclick="backToSelectScreen()">◀ 戻る</button>
+                    <button class="reset-btn-large" onclick="resetToDefaultItems()">🔄 リセット</button>
+                </div>
+                
                 <div id="detail-current-status-title" style="font-size: 0.95rem; font-weight: bold; color: var(--text-color); margin-bottom: 12px; background: var(--card-bg); padding: 10px 14px; border-radius: 12px; border: 1px solid var(--card-border); text-align: center; box-shadow: var(--box-shadow-out);">選択中の予定</div>
                 <div class="section-title"> お気に入り（タップで追加）</div>
                 <div id="favorite-list" class="favorite-container"></div>
@@ -661,7 +737,6 @@
                 <div id="master-items-list" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 5px;"></div>
             </div>
 
-            <!-- ユーザーが自由に行く場所を追加・設定できるエリア -->
             <div class="setting-card">
                 <span style="font-weight: bold; display: block; margin-bottom: 6px;"> 行く場所を追加・削除</span>
                 <div class="add-item-form" style="margin-bottom: 16px;">
@@ -699,7 +774,7 @@
         let noticeItems = [];
         let defaultItems = [];
         let locationPresets = {};
-        let locationLabels = {}; // 各場所の表示名を管理用
+        let locationLabels = {}; 
         
         let isNoticeMasterEnabled = true; 
         let lastTriggeredMinute = "";
@@ -716,7 +791,6 @@
             const savedMaster = localStorage.getItem('master_items');
             defaultItems = savedMaster ? JSON.parse(savedMaster) : [" 筆記用具", " パソコン", " 教科書"];
 
-            // 行く場所（プリセット）の復元とデフォルト設定
             const savedPresets = localStorage.getItem('location_presets');
             const savedLabels = localStorage.getItem('location_labels');
             if (savedPresets && savedLabels) {
@@ -760,7 +834,6 @@
             renderNoticeList();
             renderMasterItems();
             
-            // 行く場所をセレクトボックスと設定選択画面にビルド
             buildLocationSelectOptions();
             renderLocationCalendarButtons();
             renderLocationPresetItems();
@@ -785,7 +858,6 @@
             }
         };
 
-        // 行く場所を動的にセレクトボックスに生成
         function buildLocationSelectOptions() {
             const select = document.getElementById('preset-location-select');
             const currentValue = select.value;
@@ -801,41 +873,36 @@
             }
         }
 
-        // 行く場所（カレンダー画面の設定用大きなボタン）を動的に生成
         function renderLocationCalendarButtons() {
             const container = document.getElementById('calendar-location-buttons-container');
             container.innerHTML = '';
 
-            // 各場所に応じたボタンカラーグラデーションを用意
             const colors = [
-                "linear-gradient(135deg, #34c759, #28a745)",
-                "linear-gradient(135deg, #ff2d55, #d91b43)",
-                "linear-gradient(135deg, #af52de, #913ec4)",
-                "linear-gradient(135deg, #007aff, #0056b3)",
-                "linear-gradient(135deg, #ff9500, #cc7a00)"
+                "linear-gradient(135deg, #2fbb4f, #1e8a38)", 
+                "linear-gradient(135deg, #ff2a55, #c81339)", 
+                "linear-gradient(135deg, #a044db, #7928ad)", 
+                "linear-gradient(135deg, #0076ff, #004ebd)", 
+                "linear-gradient(135deg, #ff9300, #c66f00)"  
             ];
 
             Object.keys(locationPresets).forEach((key, index) => {
                 const btnColor = colors[index % colors.length];
                 container.innerHTML += `
-                    <div style="position: relative; margin-bottom: 14px;">
-                        <button class="location-btn-large" style="background: ${btnColor}; margin-bottom: 0;" onclick="openLocationDetail('${key}')"> 
-                            ${locationLabels[key]} を設定
+                    <div style="position: relative; margin-bottom: 16px;">
+                        <button class="location-btn-large" style="background: ${btnColor};" onclick="openLocationDetail('${key}')"> 
+                            ${locationLabels[key]} を設定する
                         </button>
-                        <button class="delete-btn" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: white; font-size: 1.5rem; z-index: 10;" onclick="event.stopPropagation(); deleteLocationPresetStructure('${key}')"></button>
+                        <button class="delete-btn" style="position: absolute; right: 20px; top: 50%; transform: translateY(-50%); color: rgba(255,255,255,0.7); font-size: 1.6rem; font-weight: bold; z-index: 10; padding: 10px;" onclick="event.stopPropagation(); deleteLocationPresetStructure('${key}')"></button>
                     </div>`;
             });
         }
 
-        // 新しい行く場所を追加する機能
         function addNewLocationPreset() {
             const input = document.getElementById('custom-location-name');
             const name = input.value.trim();
             if (!name) return;
 
-            // 被り防止のために適当なキーを生成
             const key = 'loc_' + Date.now();
-            
             locationPresets[key] = [];
             locationLabels[key] = name;
             
@@ -845,11 +912,9 @@
             
             document.getElementById('preset-location-select').value = key;
             renderLocationPresetItems();
-            
             input.value = '';
         }
 
-        // 行く場所の枠自体を削除する機能
         function deleteLocationPresetStructure(key) {
             if (confirm(`「${locationLabels[key]}」の枠と設定をすべて削除しますか？`)) {
                 delete locationPresets[key];
@@ -883,55 +948,51 @@
                     },
                     (error) => {
                         console.warn("位置情報取得失敗。デフォルト値(東京)で取得します。", error);
-                        // 失敗時は分かりやすいようメッセージを変更
                         tipEl.innerText = '※位置情報がオフのため東京の天気を表示中';
                         getWeatherFromAPI(35.6895, 139.6917);
                     },
                     { 
-                        enableHighAccuracy: true, // 常にGPSを本気で動かす
-                        timeout: 8000,            // 8秒まで粘る
-                        maximumAge: 0             // 過去の古い位置情報の使い回しを【絶対禁止】
+                        enableHighAccuracy: true,
+                        timeout: 8000,           
+                        maximumAge: 0            
                     }
                 );
             } else {
                 getWeatherFromAPI(35.6895, 139.6917);
             }
         }
-        
+
         async function getWeatherFromAPI(lat, lon) {
             const iconEl = document.getElementById('home-weather-icon');
             const textEl = document.getElementById('home-weather-text');
             const tipEl = document.getElementById('home-weather-tip');
 
             try {
-                // current（現在の天気）を追加し、モデルをjma_seamlessに指定
                 const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=weather_code&daily=weathercode,precipitation_probability_max&timezone=Asia%2FTokyo&models=jma_seamless`;
                 const response = await fetch(url);
                 const data = await response.json();
 
                 if (data) {
-                    // 1. まず「今現在」の気象コードを最優先でチェック
                     const currentData = data.current_jma_seamless || data.current;
                     const dailyData = data.daily_jma_seamless || data.daily;
                     
                     const currentCode = currentData ? currentData.weather_code : dailyData.weathercode[0];
                     maxPrecipitationProbability = dailyData.precipitation_probability_max[0] || 0; 
 
-                    // 2. 「今」のコードでスッキリ判定
                     if ((currentCode >= 51 && currentCode <= 67) || (currentCode >= 80 && currentCode <= 86) || maxPrecipitationProbability >= 50) {
-                        weatherState = 2; // 雨
+                        weatherState = 2; 
                         iconEl.innerText = '☔';
                         textEl.innerText = `現在の天気: 雨・雪 (降水確率 ${maxPrecipitationProbability}%)`;
                         tipEl.innerText = '【自動提案】傘をリストに追加しました！';
                         tipEl.style.color = '#ff2d55';
                     } else if (currentCode === 1 || currentCode === 2 || currentCode === 3) {
-                        weatherState = 1; // 曇り
+                        weatherState = 1; 
                         iconEl.innerText = '☁️';
                         textEl.innerText = `現在の天気: 曇り (降水確率 ${maxPrecipitationProbability}%)`;
                         tipEl.innerText = '念のため折りたたみ傘があると安心です';
                         tipEl.style.color = 'var(--text-secondary)';
                     } else {
-                        weatherState = 0; // 晴れ (コード0など)
+                        weatherState = 0; 
                         iconEl.innerText = '☀️';
                         textEl.innerText = `現在の天気: 晴れ (降水確率 ${maxPrecipitationProbability}%)`;
                         tipEl.innerText = '今日もしっかり晴れて気持ちいいですね！';
@@ -1054,6 +1115,20 @@
             return saved ? JSON.parse(saved) : defaultItems.map(name => ({ name: name, checked: false }));
         }
 
+        function updateHomeCounter(items) {
+            let totalCount = items.length;
+            let checkedCount = items.filter(item => item.checked).length;
+            
+            if (weatherState === 2) {
+                totalCount += 1;
+                const umbrellaChecked = localStorage.getItem('temp_umbrella_checked') === 'true';
+                if (umbrellaChecked) {
+                    checkedCount += 1;
+                }
+            }
+            document.getElementById('home-counter').innerText = `${checkedCount} / ${totalCount}`;
+        }
+
         function loadHomeData() {
             let items = getItemsForDate(todayStr);
             const container = document.getElementById('home-checklist');
@@ -1064,7 +1139,7 @@
                 container.innerHTML += `
                     <div class="check-item umbrella-alert">
                         <span style="font-weight: 700; color: #ff2d55;">折りたたみ傘 ☂️</span>
-                        <input type="checkbox" id="home-umbrella-chk" class="checkbox" ${savedUmbrellaCheck ? 'checked' : ''} onchange="localStorage.setItem('temp_umbrella_checked', this.checked)">
+                        <input type="checkbox" id="home-umbrella-chk" class="checkbox" ${savedUmbrellaCheck ? 'checked' : ''} onchange="localStorage.setItem('temp_umbrella_checked', this.checked); loadHomeData();">
                     </div>`;
             }
 
@@ -1075,6 +1150,8 @@
                         <input type="checkbox" id="home-chk-${index}" class="checkbox" ${item.checked ? 'checked' : ''} onchange="saveHomeDataImmediate()">
                     </div>`;
             });
+
+            updateHomeCounter(items);
         }
 
         function saveHomeDataImmediate() {
@@ -1084,6 +1161,7 @@
                 if(el) item.checked = el.checked; 
             });
             localStorage.setItem('items_' + todayStr, JSON.stringify(items));
+            updateHomeCounter(items);
         }
 
         function onDateChange() {
@@ -1122,6 +1200,14 @@
         function backToSelectScreen() {
             document.getElementById('calendar-step-select').style.display = 'flex';
             document.getElementById('calendar-step-detail').style.display = 'none';
+        }
+
+        function resetToDefaultItems() {
+            if (confirm("この日の持ち物リストを『毎日の基本の持ち物』のみにリセットしますか？")) {
+                currentCalendarItems = defaultItems.map(name => ({ name: name, checked: false }));
+                renderCalendarList();
+                saveCalendarDataImmediate();
+            }
         }
 
         function addLocationPreset(type) {
@@ -1311,7 +1397,6 @@
                     todayItems.push({ name: name, checked: false });
                     localStorage.setItem('items_' + todayStr, JSON.stringify(todayItems));
                 }
-
                 renderMasterItems();
             }
             input.value = '';
@@ -1325,7 +1410,6 @@
             let todayItems = getItemsForDate(todayStr);
             todayItems = todayItems.filter(item => item.name !== removedName);
             localStorage.setItem('items_' + todayStr, JSON.stringify(todayItems));
-
             renderMasterItems();
         }
 
